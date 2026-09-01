@@ -401,15 +401,17 @@ async function submitForm() {
 
   form.submit();
 
-  // Fallback: show success after timeout (in case postMessage doesn't work)
+  // Fallback: show success after timeout without folder link
   setTimeout(function() {
     if (!document.getElementById('successScreen').classList.contains('active')) {
       document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
       loading.classList.remove('active');
       document.getElementById('successScreen').classList.add('active');
       document.querySelector('.progress-wrap').style.display = 'none';
-      // Set fallback link to main folder
-      document.getElementById('uploadLink').href = 'https://drive.google.com/drive/folders/1-uQwmHIVWtbwMMgnASKvfFdxZi2m6lwK';
+      document.getElementById('uploadLink').textContent = 'A equipe vai enviar o link por WhatsApp';
+      document.getElementById('uploadLink').removeAttribute('href');
+      document.getElementById('uploadLink').style.opacity = '0.5';
+      document.getElementById('uploadLink').style.cursor = 'default';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, 8000);
