@@ -245,7 +245,23 @@ border-radius:8px;color:var(--orange);font-family:'Oxanium',sans-serif;font-size
 <div style="height:1px;background:var(--card-border);margin:32px 0"></div>
 
 <p style="font-family:Oxanium,sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:16px">Materiais de apoio</p>
-<div class="field"><label>Quais materiais você tem para enviar?</label><div class="hint">Logo, fotos, catálogos, feedbacks de clientes, etc. Após enviar o formulário, você receberá um link exclusivo para upload.</div><textarea id="f_descmateriais" placeholder="Ex: Tenho logo em PNG, fotos dos produtos, catálogo em PDF..."></textarea></div>
+
+<div class="info-card"><p><strong>Envie seus arquivos aqui.</strong> Logo, fotos, catálogos, feedbacks, certificados. Limite de <strong>10MB por arquivo</strong> e <strong>30MB no total</strong>. Formatos aceitos: imagens (PNG, JPG), documentos (PDF) e vetores (SVG, AI).</p></div>
+
+<div id="dropZone" style="border:2px dashed var(--input-border);border-radius:8px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .25s;margin-bottom:16px"
+  onclick="document.getElementById('fileInput').click()"
+  ondragover="event.preventDefault();this.style.borderColor='var(--orange)';this.style.background='rgba(233,78,27,.04)'"
+  ondragleave="this.style.borderColor='var(--input-border)';this.style.background='transparent'"
+  ondrop="event.preventDefault();this.style.borderColor='var(--input-border)';this.style.background='transparent';handleFiles(event.dataTransfer.files)">
+  <div style="font-size:28px;margin-bottom:8px;opacity:.3">+</div>
+  <p style="color:var(--text-muted);font-size:14px;margin:0">Arraste arquivos aqui ou clique para selecionar</p>
+  <p style="color:var(--text-muted);font-size:12px;margin-top:4px;opacity:.6">PNG, JPG, PDF, SVG, AI — máx. 10MB por arquivo</p>
+</div>
+<input type="file" id="fileInput" multiple accept=".png,.jpg,.jpeg,.pdf,.svg,.ai,.eps" style="display:none" onchange="handleFiles(this.files)">
+
+<div id="fileList" style="margin-bottom:16px"></div>
+<div id="fileSizeInfo" style="font-family:Oxanium,sans-serif;font-size:11px;color:var(--text-muted);letter-spacing:1px;margin-bottom:22px"></div>
+
 <div class="field"><label>Identidade visual definida?</label>
 <div class="check-grid">
 <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Sim, tenho logo e paleta de cores"><div class="check-box"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Sim, tenho logo e paleta</label>
@@ -318,6 +334,60 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxYnpTmpym7bPU3730-D
 
 let currentStep = 1;
 const totalSteps = 6;
+const uploadedFiles = [];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_TOTAL_SIZE = 30 * 1024 * 1024; // 30MB
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function updateFileList() {
+  const list = document.getElementById('fileList');
+  const info = document.getElementById('fileSizeInfo');
+  if (uploadedFiles.length === 0) { list.innerHTML = ''; info.textContent = ''; return; }
+  
+  let totalSize = uploadedFiles.reduce((s, f) => s + f.size, 0);
+  let html = '';
+  uploadedFiles.forEach((f, i) => {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;margin-bottom:6px">' +
+      '<div style="display:flex;align-items:center;gap:10px;overflow:hidden"><span style="color:var(--orange);font-size:12px;flex-shrink:0">●</span><span style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + f.name + '</span><span style="font-size:11px;color:var(--text-muted);flex-shrink:0">' + formatSize(f.size) + '</span></div>' +
+      '<button onclick="removeFile(' + i + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0">✕</button></div>';
+  });
+  list.innerHTML = html;
+  info.textContent = uploadedFiles.length + ' arquivo' + (uploadedFiles.length > 1 ? 's' : '') + ' · ' + formatSize(totalSize) + ' / 30 MB';
+  info.style.color = totalSize > MAX_TOTAL_SIZE ? '#ff4444' : 'var(--text-muted)';
+}
+
+function handleFiles(files) {
+  let totalSize = uploadedFiles.reduce((s, f) => s + f.size, 0);
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.size > MAX_FILE_SIZE) { alert(file.name + ' excede o limite de 10MB.'); continue; }
+    if (totalSize + file.size > MAX_TOTAL_SIZE) { alert('Limite total de 30MB atingido. ' + file.name + ' não foi adicionado.'); break; }
+    uploadedFiles.push(file);
+    totalSize += file.size;
+  }
+  updateFileList();
+}
+
+function removeFile(index) {
+  uploadedFiles.splice(index, 1);
+  updateFileList();
+}
+
+function filesToBase64() {
+  return Promise.all(uploadedFiles.map(file => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ name: file.name, type: file.type, data: reader.result.split(',')[1] });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }));
+}
 
 function updateProgress() {
   const pct = Math.round((currentStep / totalSteps) * 100);
@@ -366,6 +436,13 @@ async function submitForm() {
   btn.style.display = 'none';
   loading.classList.add('active');
 
+  // Convert files to base64
+  if (uploadedFiles.length > 0) {
+    try {
+      data.files = await filesToBase64();
+    } catch(e) { data.files = []; }
+  }
+
   // Use iframe approach to avoid CORS
   const iframe = document.createElement('iframe');
   iframe.name = 'onboarding_submit';
@@ -385,7 +462,7 @@ async function submitForm() {
   
   document.body.appendChild(form);
 
-  // Listen for response from Apps Script
+  // Listen for response
   window.addEventListener('message', function handler(e) {
     try {
       const result = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
@@ -403,7 +480,7 @@ async function submitForm() {
 
   form.submit();
 
-  // Fallback: show success after timeout
+  // Fallback timeout
   setTimeout(function() {
     if (!document.getElementById('successScreen').classList.contains('active')) {
       document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
@@ -414,7 +491,7 @@ async function submitForm() {
       document.getElementById('emailMsg').textContent = 'O link da pasta foi enviado para o e-mail que você informou. Verifique sua caixa de entrada.';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, 10000);
+  }, 15000);
 }
 
 updateProgress();
