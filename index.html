@@ -245,9 +245,7 @@ border-radius:8px;color:var(--orange);font-family:'Oxanium',sans-serif;font-size
 <div style="height:1px;background:var(--card-border);margin:32px 0"></div>
 
 <p style="font-family:Oxanium,sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:16px">Materiais de apoio</p>
-<div class="hint" style="margin-bottom:12px">Envie logo, fotos, feedbacks de clientes, catálogos, certificados ou qualquer material útil.</div>
-<a class="drive-link" href="https://drive.google.com/drive/folders/1-uQwmHIVWtbwMMgnASKvfFdxZi2m6lwK" target="_blank">Abrir pasta no Google Drive</a>
-<div class="field" style="margin-top:22px"><label>Descreva brevemente o que enviou</label><textarea id="f_descmateriais" placeholder="Ex: Logo em PNG, fotos dos produtos, prints de feedbacks..."></textarea></div>
+<div class="field"><label>Quais materiais você tem para enviar?</label><div class="hint">Logo, fotos, catálogos, feedbacks de clientes, etc. Após enviar o formulário, você receberá um link exclusivo para upload.</div><textarea id="f_descmateriais" placeholder="Ex: Tenho logo em PNG, fotos dos produtos, catálogo em PDF..."></textarea></div>
 <div class="field"><label>Identidade visual definida?</label>
 <div class="check-grid">
 <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Sim, tenho logo e paleta de cores"><div class="check-box"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Sim, tenho logo e paleta</label>
@@ -277,7 +275,9 @@ border-radius:8px;color:var(--orange);font-family:'Oxanium',sans-serif;font-size
 <!-- SUCCESS -->
 <div class="success-screen" id="successScreen">
 <h2>Formulário enviado <span>com sucesso.</span></h2>
-<p style="margin-bottom:40px">Suas respostas e credenciais foram salvas num documento exclusivo no Google Drive da FX Hub Creative.</p>
+<p style="margin-bottom:20px">Suas respostas foram salvas. Agora, envie seus materiais na pasta exclusiva abaixo.</p>
+
+<a id="uploadLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:16px 32px;background:var(--orange);border-radius:8px;color:#fff;font-family:Oxanium,sans-serif;font-size:14px;text-decoration:none;margin:12px 0 40px;letter-spacing:1px;transition:background .25s">Enviar materiais (logo, fotos, arquivos)</a>
 
 <div style="max-width:440px;margin:0 auto;text-align:left">
 <p style="font-family:Oxanium,sans-serif;font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:2px">O QUE ACONTECE AGORA</p>
@@ -368,7 +368,8 @@ async function submitForm() {
     const res = await fetch(SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      redirect: 'follow'
     });
     const result = await res.json();
 
@@ -377,6 +378,7 @@ async function submitForm() {
       loading.classList.remove('active');
       document.getElementById('successScreen').classList.add('active');
       document.querySelector('.progress-wrap').style.display = 'none';
+      if (result.folderUrl) { document.getElementById('uploadLink').href = result.folderUrl; }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       throw new Error(result.error || 'Erro ao salvar');
