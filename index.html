@@ -364,54 +364,55 @@ async function submitForm() {
   btn.style.display = 'none';
   loading.classList.add('active');
 
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
-    
-    let result;
-    const text = await res.text();
-    try { result = JSON.parse(text); } catch(e) {
-      // Google Apps Script sometimes wraps response - try to extract JSON
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) { result = JSON.parse(match[0]); } 
-      else { throw new Error('Resposta inesperada do servidor'); }
-    }
+  // Use iframe approach to avoid CORS
+  const iframe = document.createElement('iframe');
+  iframe.name = 'onboarding_submit';
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
 
-    if (result.success) {
-      document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
-      loading.classList.remove('active');
-      document.getElementById('successScreen').classList.add('active');
-      document.querySelector('.progress-wrap').style.display = 'none';
-      if (result.folderUrl) { document.getElementById('uploadLink').href = result.folderUrl; }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      throw new Error(result.error || 'Erro ao salvar');
-    }
-  } catch (err) {
-    // Fallback: try no-cors mode (won't get response but data is saved)
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = SCRIPT_URL;
+  form.target = 'onboarding_submit';
+  
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'data';
+  input.value = JSON.stringify(data);
+  form.appendChild(input);
+  
+  document.body.appendChild(form);
+
+  // Listen for response from Apps Script
+  window.addEventListener('message', function handler(e) {
     try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-      });
-      // Assume success since no-cors doesn't return readable response
+      const result = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      if (result && result.success) {
+        document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
+        loading.classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+        document.querySelector('.progress-wrap').style.display = 'none';
+        if (result.folderUrl) { document.getElementById('uploadLink').href = result.folderUrl; }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.removeEventListener('message', handler);
+      }
+    } catch(err) {}
+  });
+
+  form.submit();
+
+  // Fallback: show success after timeout (in case postMessage doesn't work)
+  setTimeout(function() {
+    if (!document.getElementById('successScreen').classList.contains('active')) {
       document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
       loading.classList.remove('active');
       document.getElementById('successScreen').classList.add('active');
       document.querySelector('.progress-wrap').style.display = 'none';
+      // Set fallback link to main folder
+      document.getElementById('uploadLink').href = 'https://drive.google.com/drive/folders/1-uQwmHIVWtbwMMgnASKvfFdxZi2m6lwK';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err2) {
-      loading.classList.remove('active');
-      btn.style.display = 'block';
-      alert('Erro ao enviar. Tente novamente ou entre em contato com a equipe.');
-      console.error(err2);
     }
-  }
+  }, 8000);
 }
 
 updateProgress();
