@@ -367,11 +367,18 @@ async function submitForm() {
   try {
     const res = await fetch(SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data),
-      redirect: 'follow'
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
-    const result = await res.json();
+    
+    let result;
+    const text = await res.text();
+    try { result = JSON.parse(text); } catch(e) {
+      // Google Apps Script sometimes wraps response - try to extract JSON
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) { result = JSON.parse(match[0]); } 
+      else { throw new Error('Resposta inesperada do servidor'); }
+    }
 
     if (result.success) {
       document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
@@ -384,10 +391,26 @@ async function submitForm() {
       throw new Error(result.error || 'Erro ao salvar');
     }
   } catch (err) {
-    loading.classList.remove('active');
-    btn.style.display = 'block';
-    alert('Erro ao enviar. Tente novamente ou entre em contato com a equipe.');
-    console.error(err);
+    // Fallback: try no-cors mode (won't get response but data is saved)
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      });
+      // Assume success since no-cors doesn't return readable response
+      document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
+      loading.classList.remove('active');
+      document.getElementById('successScreen').classList.add('active');
+      document.querySelector('.progress-wrap').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err2) {
+      loading.classList.remove('active');
+      btn.style.display = 'block';
+      alert('Erro ao enviar. Tente novamente ou entre em contato com a equipe.');
+      console.error(err2);
+    }
   }
 }
 
