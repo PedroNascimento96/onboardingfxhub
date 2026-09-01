@@ -275,9 +275,11 @@ border-radius:8px;color:var(--orange);font-family:'Oxanium',sans-serif;font-size
 <!-- SUCCESS -->
 <div class="success-screen" id="successScreen">
 <h2>Formulário enviado <span>com sucesso.</span></h2>
-<p style="margin-bottom:20px">Suas respostas foram salvas. Agora, envie seus materiais na pasta exclusiva abaixo.</p>
+<p style="margin-bottom:20px">Suas respostas foram salvas. O link da sua pasta exclusiva para envio de materiais foi enviado para o seu e-mail.</p>
 
-<a id="uploadLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:16px 32px;background:var(--orange);border-radius:8px;color:#fff;font-family:Oxanium,sans-serif;font-size:14px;text-decoration:none;margin:12px 0 40px;letter-spacing:1px;transition:background .25s">Enviar materiais (logo, fotos, arquivos)</a>
+<a id="uploadLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:16px 32px;background:var(--orange);border-radius:8px;color:#fff;font-family:Oxanium,sans-serif;font-size:14px;text-decoration:none;margin:12px 0 12px;letter-spacing:1px;transition:background .25s">Enviar materiais (logo, fotos, arquivos)</a>
+
+<p id="emailMsg" style="color:var(--text-muted);font-size:13px;margin-bottom:40px">Verifique sua caixa de entrada.</p>
 
 <div style="max-width:440px;margin:0 auto;text-align:left">
 <p style="font-family:Oxanium,sans-serif;font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:2px">O QUE ACONTECE AGORA</p>
@@ -401,20 +403,18 @@ async function submitForm() {
 
   form.submit();
 
-  // Fallback: show success after timeout without folder link
+  // Fallback: show success after timeout
   setTimeout(function() {
     if (!document.getElementById('successScreen').classList.contains('active')) {
       document.getElementById('formWrap').querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
       loading.classList.remove('active');
       document.getElementById('successScreen').classList.add('active');
       document.querySelector('.progress-wrap').style.display = 'none';
-      document.getElementById('uploadLink').textContent = 'A equipe vai enviar o link por WhatsApp';
-      document.getElementById('uploadLink').removeAttribute('href');
-      document.getElementById('uploadLink').style.opacity = '0.5';
-      document.getElementById('uploadLink').style.cursor = 'default';
+      document.getElementById('uploadLink').style.display = 'none';
+      document.getElementById('emailMsg').textContent = 'O link da pasta foi enviado para o e-mail que você informou. Verifique sua caixa de entrada.';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, 8000);
+  }, 10000);
 }
 
 updateProgress();
